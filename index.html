@@ -147,19 +147,17 @@ a:hover{text-decoration:underline}
 .panel-head .count{font-size:11.5px;color:var(--text-3);font-weight:600}
 .panel-head .spacer{flex:1}
 
-/* 결과 내 검색 — 좁혀진 결과 안에서 조건을 겹쳐 쌓는다 */
-.refinebar{
-  display:none;align-items:center;gap:6px;flex-wrap:wrap;flex:none;
-  padding:7px 14px;border-bottom:1px solid var(--line-soft);background:var(--surface-2);
+/* 좁힌 조건 — 검색창에서 엔터를 칠 때마다 여기에 하나씩 굳는다.
+   예전에는 '결과 내 검색' 이라는 칸이 따로 있었는데 칸이 둘이라 헷갈렸다.
+   검색창 하나로 합치고 여기는 쌓인 조건만 보여 준다(2026-09-07). */
+.chipbar{
+  display:none;align-items:center;gap:6px;flex-wrap:wrap;
+  margin:0;padding:7px 12px;background:var(--surface-2);
+  border:1px solid #cfdcec;border-top:none;border-bottom:none;
 }
-.refinebar.on{display:flex}
-.refinebar .lb{font-size:11.5px;color:var(--text-3);font-weight:700;flex:none}
-.refinebar input{
-  flex:1;min-width:150px;height:26px;padding:0 9px;border:1px solid var(--line);
-  border-radius:6px;background:var(--surface);font-size:12.5px;
-}
-.refinebar input::placeholder{color:var(--text-3)}
-.refinebar input:focus{outline:none;border-color:var(--brand-line);box-shadow:0 0 0 2px var(--brand-soft)}
+.chipbar.on{display:flex}
+.chipbar .lb{font-size:11.5px;color:var(--text-3);font-weight:700;flex:none}
+.chipbar .hint{font-size:11px;color:var(--text-3);margin-left:auto;flex:none}
 .rchip{
   display:inline-flex;align-items:center;gap:5px;flex:none;
   padding:3px 6px 3px 9px;border-radius:999px;font-size:12px;font-weight:600;
@@ -350,10 +348,16 @@ mark{background:var(--mark-bg);color:var(--mark-text);border-radius:2px;padding:
     <div class="searchbar">
       <div class="search-wrap">
         <span class="ico">🔍</span>
-        <input id="q" type="text" placeholder="통합 검색  ·  초성(ㄱㅁㄱㄱ)도 됩니다  ·  여러 단어는 모두 포함, -단어는 제외" autocomplete="off" spellcheck="false">
+        <input id="q" type="text" placeholder="통합 검색  ·  초성(ㄱㅁㄱㄱ)도 됩니다  ·  엔터를 치면 조건으로 쌓여 더 좁힐 수 있습니다" autocomplete="off" spellcheck="false">
         <button class="btn-clear" id="qClear" title="지우기">✕</button>
         <span class="kbd-hint">/</span>
       </div>
+    </div>
+    <!-- 쌓아 둔 조건. 엔터를 치면 검색창의 말이 여기로 굳는다. -->
+    <div class="chipbar" id="refineBar">
+      <span class="lb">좁힌 조건</span>
+      <span id="refineChips" style="display:flex;gap:5px;flex-wrap:wrap"></span>
+      <span class="hint">엔터로 쌓기 · 빈 칸에서 ⌫로 풀기</span>
     </div>
 
     <div class="orgtabs" id="orgTabs" role="group" aria-label="기관 선택"></div>
@@ -402,12 +406,6 @@ mark{background:var(--mark-bg);color:var(--mark-text);border-radius:2px;padding:
         <span class="count" style="margin-right:2px">열 추가</span>
         <span id="colBtns" style="display:flex;gap:4px"></span>
       </div>
-      <div class="refinebar" id="refineBar">
-        <span class="lb">결과 내 검색</span>
-        <span id="refineChips" style="display:flex;gap:5px;flex-wrap:wrap"></span>
-        <input id="refineQ" type="text" autocomplete="off" spellcheck="false"
-               placeholder="좁혀진 결과 안에서 다시 찾기 · 엔터를 치면 조건으로 쌓입니다">
-      </div>
       <div class="thead" id="thead"></div>
       <div class="tbody" id="tbody">
         <div class="state" id="stateEmpty">
@@ -435,7 +433,8 @@ mark{background:var(--mark-bg);color:var(--mark-text);border-radius:2px;padding:
   <div class="statusbar">
     <span><kbd>/</kbd> 검색창</span>
     <span><kbd>↑</kbd><kbd>↓</kbd> 이동</span>
-    <span><kbd>Enter</kbd> 전화번호 복사</span>
+    <span><kbd>Enter</kbd> 조건 쌓기</span>
+    <span><kbd>Ctrl</kbd>+<kbd>Enter</kbd> 전화번호 복사</span>
     <span><kbd>Esc</kbd> 초기화</span>
     <span class="spacer"></span>
     <span id="srcNote"></span>
@@ -472,12 +471,17 @@ mark{background:var(--mark-bg);color:var(--mark-text);border-radius:2px;padding:
         <li>한 단어 안에 글자가 섞여 있으면 초성으로는 찾지 않습니다.
             <code>마포세무서</code>를 쳤을 때 <code>ㅁㅍㅅㅁㅅ</code>인 다른 줄이 딸려 나오지 않게 하려는 것입니다.</li>
       </ul>
-      <h3>결과 내 검색</h3>
+      <h3>조건을 쌓아 좁히기</h3>
       <ul>
-        <li>검색 결과 위의 <b>결과 내 검색</b> 칸에 넣고 엔터를 치면 조건이 하나 쌓입니다. 여러 번 겹칠 수 있습니다.</li>
-        <li>조건 옆 <code>✕</code>를 누르면 그 조건만 풀리고 나머지는 그대로 남습니다.</li>
-        <li>여기서도 <code>-단어</code>와 <code>"따옴표"</code>를 쓸 수 있습니다.</li>
-        <li><b>Esc</b> 또는 <b>전체 초기화</b>를 누르면 조건이 전부 사라집니다.</li>
+        <li>검색창에 넣고 <b>엔터</b>를 치면 그 말이 조건으로 굳고 칸이 비워집니다.
+            이어서 다음 말을 치면 <b>좁혀진 결과 안에서만</b> 다시 찾습니다.
+            예: <code>세무서</code> 엔터 → <code>부가가치세</code> 엔터 → <code>목포</code></li>
+        <li>조건 옆 <code>✕</code>를 누르면 그 조건만 풀리고 나머지는 그대로 남습니다.
+            빈 칸에서 <b>⌫(백스페이스)</b>를 눌러도 마지막 조건이 풀립니다.</li>
+        <li>조건 하나하나에 <code>-단어</code>와 <code>"따옴표"</code>를 쓸 수 있습니다.</li>
+        <li>검색창의 <code>✕</code>는 치던 말만 지웁니다. 조건까지 전부 없애려면
+            <b>Esc</b> 또는 <b>전체 초기화</b>를 누르세요.</li>
+        <li>전화번호 복사는 <b>Ctrl+엔터</b>입니다(예전에는 그냥 엔터였습니다).</li>
       </ul>
       <h3>못 찾았을 때 (자동으로 두 번 더 찾습니다)</h3>
       <ul>
@@ -1033,7 +1037,8 @@ function search(){
   /* 결과 내 검색은 조건을 '빼는' 방식이 아니라
      원본에서 남은 조건으로 처음부터 다시 거르는 방식이다.
      그래야 칩 하나를 지웠을 때 이전 상태로 정확히 돌아간다. */
-  const chain = [q, ...REFINE].filter(s=>s && s.trim());
+  // 쌓아 둔 조건이 먼저고, 지금 치고 있는 말이 마지막이다.
+  const chain = [...REFINE, q].filter(s=>s && s.trim());
   let rows = base, toks = [], mode = '';
   for(const step of chain){
     const res = applyQuery(rows, step);
@@ -1064,7 +1069,7 @@ function run(pushRecent){
   SEL = VIEW.length ? 0 : -1;
   const note = mode==='fuzzy' ? ' · 오타 보정 결과'
              : mode==='flat'  ? ' · 띄어쓰기 무시 결과' : '';
-  const deep = REFINE.length ? ` · (결과 내 ${REFINE.length}단계)` : '';
+  const deep = REFINE.length ? ` · (${REFINE.length}단계로 좁힘)` : '';
   $('#resCount').textContent = `${VIEW.length.toLocaleString()}건` + note + deep;
   $('#resCount').style.color = note ? 'var(--warn)' : '';
   $('#stateEmpty').classList.toggle('on', VIEW.length===0);
@@ -1080,13 +1085,14 @@ function run(pushRecent){
    결과가 있을 때 보이는 게 원칙인데, 0건이라도 칩이 남아 있으면 보여야 한다.
    안 그러면 방금 넣은 조건을 풀 방법이 없어진다. */
 function renderRefine(){
-  $('#refineBar').classList.toggle('on', VIEW.length>0 || REFINE.length>0);
+  // 쌓인 조건이 있을 때만 줄을 보인다. 없으면 검색창 하나만 있는 화면이 된다.
+  $('#refineBar').classList.toggle('on', REFINE.length>0);
   const box=$('#refineChips');
   box.innerHTML = REFINE.map((t,i)=>
-    `<span class="rchip">결과 내: ${esc(t)}<button data-i="${i}" title="이 조건만 풀기">✕</button></span>`
+    `<span class="rchip">${esc(t)}<button data-i="${i}" title="이 조건만 풀기">✕</button></span>`
   ).join('');
   box.querySelectorAll('button').forEach(b=>{
-    b.onclick=()=>{ REFINE.splice(+b.dataset.i,1); run(); $('#refineQ').focus(); };
+    b.onclick=()=>{ REFINE.splice(+b.dataset.i,1); run(); $('#q').focus(); };
   });
 }
 
@@ -1113,7 +1119,7 @@ function buildSuggestion(){
   if(near) tips.push(`<b>${esc(q)}</b> 은(는) 없습니다. <b>${esc(near)}</b> 로 찾아보세요`);
   if(sel.length) tips.push('필터를 <b>전체</b>로 되돌려 보세요');
   if(q.split(/\s+/).length>1) tips.push('검색어를 <b>한 단어</b>로 줄여 보세요');
-  if(REFINE.length) tips.push('<b>결과 내 검색</b> 조건을 하나 풀어 보세요');
+  if(REFINE.length) tips.push('쌓아 둔 조건을 <b>⌫</b> 나 칩의 ✕ 로 하나 풀어 보세요');
   if(q && !isChoOnly(normS(q))) tips.push('초성만 입력해도 찾을 수 있습니다');
   if(!tips.length) tips.push('기관 이름 일부만 넣어 보세요 (예: <b>건강보험</b>)');
   $('#emptySug').innerHTML = tips.map(t=>'· '+t).join('<br>');
@@ -1412,7 +1418,7 @@ function renderRec(){
       if(e.target.dataset.del!==undefined){
         const arr=jget(KEY_REC,[]); arr.splice(+e.target.dataset.del,1); jset(KEY_REC,arr); renderRec(); return;
       }
-      $('#q').value=c.dataset.t; $('#qClear').classList.add('on'); run();
+      $('#q').value=c.dataset.t; $('#qClear').classList.add('on'); REFINE=[]; run();
     };
   });
 }
@@ -1468,24 +1474,30 @@ $('#q').addEventListener('input', ()=>{
   if(composing) return;
   scheduleRun();
 });
+/* 엔터  — 지금 친 말을 조건으로 굳히고 칸을 비운다. 이어서 더 좁혀 갈 수 있다.
+   Ctrl+엔터 — 고른 줄의 전화번호 복사(예전의 그냥 엔터).
+   빈 칸에서 ⌫ — 마지막 조건을 푼다.
+   -단어 제외와 "따옴표" 는 조건 하나하나에 그대로 쓸 수 있다. 같은 해석기를 쓴다. */
 $('#q').addEventListener('keydown', e=>{
-  if(e.key==='Enter'){ e.preventDefault(); pushRecentTerm(); if(VIEW[SEL]) copy(VIEW[SEL].tel); }
-  if(e.key==='ArrowDown'){ e.preventDefault(); tbody().focus(); move(1); }
-});
-$('#qClear').onclick=()=>{ $('#q').value=''; $('#qClear').classList.remove('on'); run(); $('#q').focus(); };
-/* 결과 내 검색 — 엔터로 조건을 쌓고, 빈 칸에서 백스페이스로 마지막 조건을 뺀다.
-   -단어 제외와 "따옴표" 도 여기서 똑같이 쓸 수 있다. 같은 해석기를 쓰기 때문이다. */
-$('#refineQ').addEventListener('keydown', e=>{
   if(e.key==='Enter'){
     e.preventDefault();
+    if(e.ctrlKey || e.metaKey){ if(VIEW[SEL]) copy(VIEW[SEL].tel); return; }
     const v=e.target.value.trim();
-    if(!v) return;
-    REFINE.push(v); e.target.value=''; run(); $('#refineQ').focus();
-  }else if(e.key==='Backspace' && !e.target.value && REFINE.length){
-    e.preventDefault();
-    REFINE.pop(); run(); $('#refineQ').focus();
+    if(!v){ if(VIEW[SEL]) copy(VIEW[SEL].tel); return; }
+    pushRecentTerm();
+    REFINE.push(v);
+    e.target.value=''; $('#qClear').classList.remove('on');
+    clearTimeout(timer); clearTimeout(fuzzyTimer); ALLOW_FUZZY=false;
+    run(); $('#q').focus();
+    return;
   }
+  if(e.key==='Backspace' && !e.target.value && REFINE.length){
+    e.preventDefault(); REFINE.pop(); run(); $('#q').focus(); return;
+  }
+  if(e.key==='ArrowDown'){ e.preventDefault(); tbody().focus(); move(1); }
 });
+// ✕ 는 치던 말만 지운다. 쌓아 둔 조건은 칩의 ✕ 나 ⌫ 로 푼다.
+$('#qClear').onclick=()=>{ $('#q').value=''; $('#qClear').classList.remove('on'); run(); $('#q').focus(); };
 FKEYS.forEach((k,i)=> $('#f'+i).addEventListener('change', ()=>{
   // 하위 단계 초기화
   for(let j=i+1;j<FKEYS.length;j++) $('#f'+j).value='';
@@ -1496,7 +1508,7 @@ FKEYS.forEach((k,i)=> $('#f'+i).addEventListener('change', ()=>{
    그 둘은 사용자가 정해 둔 것이지 검색 상태가 아니다. */
 function goHome(){
   $('#q').value=''; $('#qClear').classList.remove('on');
-  REFINE=[]; $('#refineQ').value='';
+  REFINE=[];
   FKEYS.forEach((k,i)=>{ $('#f'+i).value=''; AUTOF[i]=false; });
   sortKey=null; sortDir=1;
   $('#helpModal').classList.remove('on');
